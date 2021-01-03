@@ -9,7 +9,10 @@ app.use(express.urlencoded({extended: true}));
 app.use(cors()); //Needed to allow cross origin requests
 app.use(express.json());
 
-app.post("/episodes", handleEpisodeRequest);
+app.post("/episodes", (req, res) => {
+    console.log("request made for episodes");
+    handleEpisodeRequest(req, res);
+});
 
 app.listen(port, () => {
     console.log(`Server is listening on port ${port}`)
@@ -23,25 +26,33 @@ async function handleEpisodeRequest(req, res) {
     
     client.connect((err) => {
         if(err) {
-            status = 404; //error occured 
+            console.log("error occured during connection");
         } else {
+            console.log("connection established");
             client.db("yawa-dey").collection("episodes", (err, episodes) => {
-                processEpisodes(req.body.seasonNumber, err, episodes); 
-                //client.close();
+                if(err) {
+                    console.log("could not obtain episodes collection");
+                } else {
+                    console.log("obtained episodes collection");
+                    processEpisodes(req.body.seasonNumber, episodes, res); 
+                    //client.close();
+                }
             });
         }
     });
 }
 
-async function processEpisodes(seasonNumber, err, episodes) {
-    let status = 200;
+async function processEpisodes(seasonNumber, episodes, res) {
+    console.log(`Querying the episodes collection for documents with season # ${seasonNumber}`);
 
-    if(err) {
-        status = 404; //error occured
-    } else {
-        let cursor = episodes.find({seasonNumber: seasonNumber});
-        await cursor.forEach(console.log);
-    }
+    let cursor = await episodes.find({seasonNumber: seasonNumber});
 
-    return {status: status, episodes: ""};
+    cursor.toArray((err, docs) => {
+        if(err) {
+            console.log("error occured while attempting to convert cursor to array");
+        } else {
+            res.status(200).json({episodes: docs});
+        }
+    });
+    
 }
