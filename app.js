@@ -14,8 +14,14 @@ app.use(express.json());
     Handle a request for episodes given an object of the following type as the body of the request
 
     {
+        filter: true,
         seasonNumber: null|String,
         series: null| String
+    } |
+
+    {
+        filter: false,
+        searchTerm: string
     }
 */
 app.post("/episodes", (req, res) => {
