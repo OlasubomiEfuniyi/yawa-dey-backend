@@ -84,8 +84,11 @@ app.listen(port, () => {
 */
 async function handleEpisodesRequest(successCallback, errCallback) {
     const MongoClient = mongodb.MongoClient;
-    const uri = "mongodb+srv://olasubomi:j5ThIonON4Z2g1MW@cluster0.ouakf.mongodb.net/yawa-dey?retryWrites=true&w=majority";
-    const client = await new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
+    const dev_uri = "mongodb+srv://olasubomi:j5ThIonON4Z2g1MW@cluster0.ouakf.mongodb.net/yawa-dey?retryWrites=true&w=majority";
+    //When in production the environment variable MONGODBURI will be set to the appropriate uri. If the environment variable is not set,
+    //use the development uri
+    const mongodb_uri = process.env.MONGODBURI ? process.env.MONGODBURI : dev_uri; 
+    const client = await new MongoClient(mongodb_uri, {useNewUrlParser: true, useUnifiedTopology: true});
     
 
     client.connect((err) => {
