@@ -1,7 +1,15 @@
+/* The server returns the following broad categories of errors
+    CONN - Connection Error
+    IN - Error caused by malformed input
+    PROC - Error that occurs during the processing of some data
+*/
+
 const express = require("express");
 const cors = require("cors");
 const mongodb = require("mongodb");
-const e = require("express");
+const compression = require('compression');
+const helmet = require("helmet");
+
 
 const app = express();
 const port = 8080;
@@ -9,7 +17,8 @@ const port = 8080;
 app.use(express.urlencoded({extended: true}));
 app.use(cors()); //Needed to allow cross origin requests
 app.use(express.json());
-
+app.use(compression()); //Compress all routes
+app.use(helmet()); //Protect app from well-know web vulnerabilities
 /*
     Handle a request for episodes given an object of the following type as the body of the request
 
@@ -26,7 +35,13 @@ app.use(express.json());
 */
 app.post("/episodes", (req, res) => {
     console.log("request made for episodes");
-    handleEpisodesRequest((episodes, client) => processEpisodes(req.body, episodes, res, client));
+    handleEpisodesRequest((episodes, client) => {    
+        processEpisodes(req.body, episodes, client, (result) => {
+            res.status(200).json({episodes: result});
+        }, (err) => failwithError(res, err));
+    }, (err) => {
+        failwithError(res, err);
+    });
 });
 
 
@@ -35,7 +50,13 @@ app.post("/episodes", (req, res) => {
 */
 app.get("/seasons", (req, res) => {
     console.log("request made for seasons");
-    handleEpisodesRequest((episodes, client) => processSeasons(episodes, res, client));
+    handleEpisodesRequest((episodes, client) => {
+        processSeasons(episodes, client, (seasons) => {
+            res.status(200).json({seasons: seasons});
+        }, (err) => failwithError(res, err));
+    }, (err) => {
+        failwithError(res, err);
+    });
 });
 
 /*
@@ -43,7 +64,13 @@ app.get("/seasons", (req, res) => {
 */
 app.get("/series", (req, res) => {
     console.log("request made for series");
-    handleEpisodesRequest((episodes, client) => processSeries(episodes, res, client));
+    handleEpisodesRequest((episodes, client) => {
+        processSeries(episodes, client, (series) => {
+            res.status(200).json({series: series});
+        }, (err) => failwithError(res, err));
+    }, (err) => {
+        failwithError(res, err);
+    });
 });
 
 app.listen(port, () => {
@@ -55,29 +82,32 @@ app.listen(port, () => {
     callback, passing it the episodes collection object and the client used to access it. When the callback is complete, the client must
     be closed using client.close().
 */
-async function handleEpisodesRequest(callback) {
+async function handleEpisodesRequest(successCallback, errCallback) {
     const MongoClient = mongodb.MongoClient;
     const uri = "mongodb+srv://olasubomi:j5ThIonON4Z2g1MW@cluster0.ouakf.mongodb.net/yawa-dey?retryWrites=true&w=majority";
     const client = await new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     
+
     client.connect((err) => {
         if(err) {
-            console.log("error occured during connection");
+            console.log("error occured while trying to connect to mongodb")
+            errCallback({type: "CONN", message: "Error occured while trying to connect to database", object: err});
         } else {
             console.log("connection established");
             client.db("yawa-dey").collection("episodes", (err, episodes) => {
                 if(err) {
                     console.log("could not obtain episodes collection");
+                    errCallback({type: "PROC", message: "Error occures while trying to access the required collection of data", object: err});
                 } else {
                     console.log("obtained episodes collection");
-                    callback(episodes, client); 
+                    successCallback(episodes, client); 
                 }
             });
         }
     });
 }
 
-async function processEpisodes(body, episodes, res, client) {
+async function processEpisodes(body, episodes, client, successCallback, errCallback) {
     console.log(`Querying the episodes collection for documents matching ${JSON.stringify(body)}`);
     let cursor = null;
 
@@ -102,8 +132,10 @@ async function processEpisodes(body, episodes, res, client) {
     cursor.toArray((err, docs) => {
         if(err) {
             console.log("error occured while attempting to convert cursor to array");
+            client.close();
+            errCallback({type: "PROC", message: "Error occured while trying to process the retrieved episodes", object: err});
         } else {
-            res.status(200).json({episodes: docs});
+            successCallback(docs);
         }
 
         client.close();
@@ -111,25 +143,34 @@ async function processEpisodes(body, episodes, res, client) {
     
 }
 
-async function processSeasons(episodes, res, client) {
+async function processSeasons(episodes, client, successCallback, errCallback) {
     console.log("Querying episodes collection to get a list of all the season numbers");
 
     episodes.distinct("seasonNumber").then((seasons) => {
-        res.status(200).json({seasons: seasons});
+        successCallback(seasons);
         client.close();
     }, (err) => {
         console.log(`error occured when attempting to retrieve season numbers: ${err}`);
+        client.close();
+        errCallback({type: "PROC", message: "Error occured while attempting to retrieve season numbers from collection", object:err});
     });
 
 }
 
-async function processSeries(episodes, res, client) {
+async function processSeries(episodes, client, successCallback, errCallback) {
     console.log("Querying episodes collection to get a list of all the series");
 
     episodes.distinct("series").then((series) => {
-        res.status(200).json({series: series});
+        successCallback(series);
         client.close();
     }, (err) => {
         console.log(`error occured when attempting to retrieve series: ${err}`);
+        client.close();
+        errCallback({type: "PROC", message: "Error occured while attempting to retrieve series information from collection", object:err});
     });
+}
+
+async function failwithError(res, err) {
+    console.log("returning error object");
+    res.status(404).json(err);
 }
