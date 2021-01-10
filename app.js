@@ -40,8 +40,6 @@ app.use(helmet()); //Protect app from well-know web vulnerabilities
     }
 */
 
-app.options("*", cors(corsOptions));
-
 app.post("/episodes", (req, res) => {
     console.log("request made for episodes");
     handleEpisodesRequest((episodes, client) => {    
