@@ -16,7 +16,7 @@ const port = 8080;
 
 const corsOptions = {
     origin: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 204
 };
 
 
