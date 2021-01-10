@@ -19,6 +19,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 
+
 app.use(express.urlencoded({extended: true}));
 app.use(cors(corsOptions)); //Needed to allow cross origin requests
 app.use(express.json());
@@ -38,6 +39,9 @@ app.use(helmet()); //Protect app from well-know web vulnerabilities
         searchTerm: string
     }
 */
+
+app.options("*", cors(corsOptions));
+
 app.post("/episodes", (req, res) => {
     console.log("request made for episodes");
     handleEpisodesRequest((episodes, client) => {    
