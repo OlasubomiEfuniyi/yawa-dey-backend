@@ -80,9 +80,9 @@ app.get("/series", (req, res) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Server is listening on port ${port}`)
-});
+// app.listen(port, () => {
+//     console.log(`Server is listening on port ${port}`)
+// });
 
 /*
     This function handles the creation of a collection object that represents the episodes collection. If successful, it invokes the 
