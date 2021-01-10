@@ -15,7 +15,7 @@ const app = express();
 const port = 8080;
 
 const corsOptions = {
-    origin: "https://yawa-dey-website.herokuapp.com",
+    origin: true,
     optionsSuccessStatus: 200
 };
 
