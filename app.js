@@ -12,7 +12,7 @@ const helmet = require("helmet");
 
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT ? process.env.PORT : 8080;
 
 const corsOptions = {
     origin: true,
