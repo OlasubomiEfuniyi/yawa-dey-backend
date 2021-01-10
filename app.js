@@ -14,7 +14,21 @@ const helmet = require("helmet");
 const app = express();
 const port = 8080;
 
+
+var allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', 'https://yawa-dey-website.herokuapp.com');
+    res.header('Access-Control-Allow-Methods', 'GET', 'POST', 'OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+
+    if(req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    } else {
+        next();
+    }
+}
+
 app.use(express.urlencoded({extended: true}));
+app.use(allowCrossDomain);
 app.use(cors()); //Needed to allow cross origin requests
 app.use(express.json());
 app.use(compression()); //Compress all routes
